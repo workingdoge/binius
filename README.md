@@ -57,6 +57,15 @@ prove [ 128.58ms | 100.00% ] { operation = prove, perfetto_category = operation,
 ...
 ```
 
+Recent T-account demos live under the same framework:
+
+```bash
+$ cargo run -p binius-examples --example vector_accounting_pacioli
+$ cargo run -p binius-examples --example ledger_state_squash
+```
+
+They both share the reusable gadget exported from `binius_frontend::t_account`.
+
 ### Disabling multithreading
 
 Multithreading is enabled by default using [Rayon](https://github.com/rayon-rs/rayon). This is controlled by the `rayon` Cargo feature. To run an example with multithreading disabled, use `--no-default-features`.

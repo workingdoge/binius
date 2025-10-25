@@ -37,6 +37,7 @@ ureq.workspace = true
 [dev-dependencies]
 criterion.workspace = true
 hex-literal.workspace = true
+proptest.workspace = true
 
 [[bench]]
 name = "blake2b"
@@ -99,3 +100,16 @@ path = "examples/tutorials/circuits_gadgets.rs"
 [[example]]
 name = "end_to_end_example"
 path = "examples/tutorials/end_to_end_example.rs"
+
+
+[[example]]
+name = "vector_accounting_pacioli"
+path = "examples/vector_accounting_pacioli.rs"
+
+[[example]]
+name = "t_account_group"
+path = "examples/t_account_group.rs"
+
+[[example]]
+name = "ledger_state_squash"
+path = "examples/ledger_state_squash.rs"

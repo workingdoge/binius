@@ -2,7 +2,6 @@
 pub mod circuits;
 pub mod cli;
 pub mod snapshot;
-
 use anyhow::Result;
 use binius_core::constraint_system::{ConstraintSystem, ValueVec};
 use binius_frontend::{CircuitBuilder, WitnessFiller};
