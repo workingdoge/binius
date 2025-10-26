@@ -107,9 +107,9 @@ name = "vector_accounting_pacioli"
 path = "examples/vector_accounting_pacioli.rs"
 
 [[example]]
-name = "t_account_group"
-path = "examples/t_account_group.rs"
+name = "t_account_showcase"
+path = "examples/t_account_showcase.rs"
 
 [[example]]
-name = "ledger_state_squash"
-path = "examples/ledger_state_squash.rs"
+name = "t_account_end_to_end"
+path = "examples/tutorials/t_account_end_to_end.rs"

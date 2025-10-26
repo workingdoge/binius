@@ -4,8 +4,8 @@
 //! This module provides a clean separation between:
 //! - **Σ-objects** (`LedgerSigma`): canonical T-account balances in ℤ
 //! - **Π-objects** (`LedgerPi`): sequences of debit/credit postings
-//! - **Circuit helpers** that enforce double-entry invariants, derive balances, and publish
-//!   sponge commitments to the T-account state
+//! - **Circuit helpers** that enforce double-entry invariants, derive balances, and publish sponge
+//!   commitments to the T-account state
 //!
 //! The API mirrors the construction used in the `vector_accounting_pacioli` and
 //! `ledger_state_squash` examples: aggregate postings into a `LedgerPi`, collapse to
@@ -41,9 +41,10 @@
 
 use binius_core::word::Word;
 
-use crate::{compiler::circuit::WitnessFiller, CircuitBuilder, Wire};
+use crate::{CircuitBuilder, Wire, compiler::circuit::WitnessFiller};
 
-/// Shape of a T-account ledger instance: number of accounts, commodity dimensions, and transactions.
+/// Shape of a T-account ledger instance: number of accounts, commodity dimensions, and
+/// transactions.
 #[derive(Clone, Copy, Debug)]
 pub struct LedgerShape {
 	/// Number of distinct accounts.
@@ -165,7 +166,10 @@ impl LedgerPi {
 				balances[a][j] = sd as i128 - sc as i128;
 			}
 		}
-		LedgerSigma { shape: self.shape, balances }
+		LedgerSigma {
+			shape: self.shape,
+			balances,
+		}
 	}
 }
 
@@ -241,7 +245,8 @@ fn encode_balance(z: i128) -> u64 {
 	}
 }
 
-const COMMIT_SEED: u64 = 0x6A09_E667_F3BC_C908;
+/// Initial accumulator seed used by the T-account commitment sponge.
+pub const COMMIT_SEED: u64 = 0x6A09_E667_F3BC_C908;
 const MIX_CONSTS: [u64; 4] = [
 	0xBB67_AE85_84CA_A73B,
 	0x3C6E_F372_FE94_F82B,
@@ -250,7 +255,11 @@ const MIX_CONSTS: [u64; 4] = [
 ];
 const ROTL_CONSTS: [u32; 4] = [13, 27, 43, 59];
 
-fn commit_wires(builder: &CircuitBuilder, balances: &[Wire]) -> Wire {
+/// Build the standard T-account commitment gadget over a flat vector of wires.
+///
+/// The gadget mirrors [`host_commitment`] and asserts that the public output wire equals the
+/// sponge digest labelled by `label`.
+pub fn commit_wires(builder: &CircuitBuilder, balances: &[Wire], label: &str) -> Wire {
 	let mut acc = builder.add_constant_64(COMMIT_SEED);
 	let zero = builder.add_constant_64(0);
 	for (idx, &balance) in balances.iter().enumerate() {
@@ -261,7 +270,7 @@ fn commit_wires(builder: &CircuitBuilder, balances: &[Wire]) -> Wire {
 		acc = sum;
 	}
 	let digest = builder.add_inout();
-	builder.assert_eq("ledger_commitment", acc, digest);
+	builder.assert_eq(label, acc, digest);
 	digest
 }
 
@@ -325,7 +334,7 @@ pub fn build_ledger_circuit(builder: &CircuitBuilder, shape: LedgerShape) -> Led
 		}
 	}
 
-	let commitment = commit_wires(builder, &flatten_matrix(&balance));
+	let commitment = commit_wires(builder, &flatten_matrix(&balance), "ledger_commitment");
 
 	LedgerWires {
 		debit,
@@ -388,7 +397,8 @@ pub fn build_ledger_squash_circuit(
 	let initial_balance: Vec<Vec<Wire>> = (0..accounts)
 		.map(|_| (0..dimensions).map(|_| builder.add_witness()).collect())
 		.collect();
-	let initial_commitment = commit_wires(builder, &flatten_matrix(&initial_balance));
+	let initial_commitment =
+		commit_wires(builder, &flatten_matrix(&initial_balance), "squash_initial_commitment");
 
 	let final_balance: Vec<Vec<Wire>> = (0..accounts)
 		.map(|_| (0..dimensions).map(|_| builder.add_witness()).collect())
@@ -413,16 +423,8 @@ pub fn build_ledger_squash_circuit(
 				sum_many64(builder, (0..accounts).map(|a| debit_t[a][j]).collect());
 			let (sum_c, carry_c) =
 				sum_many64(builder, (0..accounts).map(|a| credit_t[a][j]).collect());
-			builder.assert_eq(
-				format!("squash_tx{t}_dim{j}_sum"),
-				sum_d,
-				sum_c,
-			);
-			builder.assert_eq(
-				format!("squash_tx{t}_dim{j}_carry"),
-				carry_d,
-				carry_c,
-			);
+			builder.assert_eq(format!("squash_tx{t}_dim{j}_sum"), sum_d, sum_c);
+			builder.assert_eq(format!("squash_tx{t}_dim{j}_carry"), carry_d, carry_c);
 		}
 
 		let mut diff_flat = Vec::with_capacity(accounts * dimensions);
@@ -434,7 +436,8 @@ pub fn build_ledger_squash_circuit(
 				state[a][j] = updated;
 			}
 		}
-		let tx_commit = commit_wires(builder, &diff_flat);
+		let label = format!("squash_tx{t}_delta_commitment");
+		let tx_commit = commit_wires(builder, &diff_flat, &label);
 		tx_commitments.push(tx_commit);
 		tx_debit.push(debit_t);
 		tx_credit.push(credit_t);
@@ -449,7 +452,8 @@ pub fn build_ledger_squash_circuit(
 			);
 		}
 	}
-	let final_commitment = commit_wires(builder, &flatten_matrix(&final_balance));
+	let final_commitment =
+		commit_wires(builder, &flatten_matrix(&final_balance), "squash_final_commitment");
 
 	LedgerSquashWires {
 		initial_balance,

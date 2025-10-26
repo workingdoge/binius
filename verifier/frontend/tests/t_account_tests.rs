@@ -1,11 +1,11 @@
 // Copyright 2025 Working Doge LLC
 use binius_core::verify::verify_constraints;
 use binius_frontend::{
-	t_account::{
-		accumulate_transactions, build_ledger_circuit, build_ledger_squash_circuit, host_commitment,
-		populate_squash_witness, populate_witness, LedgerPi, LedgerShape, LedgerSigma,
-	},
 	CircuitBuilder,
+	t_account::{
+		LedgerPi, LedgerShape, LedgerSigma, accumulate_transactions, build_ledger_circuit,
+		build_ledger_squash_circuit, host_commitment, populate_squash_witness, populate_witness,
+	},
 };
 use proptest::{collection::vec, prelude::*};
 
@@ -44,8 +44,7 @@ const PROP_ACCS: usize = 2;
 const PROP_DIMS: usize = 2;
 const PROP_TXS: usize = 3;
 
-fn ledger_inputs_strategy(
-) -> impl Strategy<Value = (Vec<Vec<Vec<u64>>>, Vec<Vec<Vec<u64>>>)> {
+fn ledger_inputs_strategy() -> impl Strategy<Value = (Vec<Vec<Vec<u64>>>, Vec<Vec<Vec<u64>>>)> {
 	let contrib_a = vec(vec(0u64..128, PROP_TXS), PROP_DIMS);
 	let contrib_b = vec(vec(0u64..128, PROP_TXS), PROP_DIMS);
 	(contrib_a, contrib_b).prop_map(|(a_vals, b_vals)| {
@@ -78,10 +77,7 @@ fn to_pi(shape: LedgerShape, debits: &[Vec<Vec<u64>>], credits: &[Vec<Vec<u64>>]
 	pi
 }
 
-fn manual_sigma(
-	debits: &[Vec<Vec<u64>>],
-	credits: &[Vec<Vec<u64>>],
-) -> Vec<Vec<i128>> {
+fn manual_sigma(debits: &[Vec<Vec<u64>>], credits: &[Vec<Vec<u64>>]) -> Vec<Vec<i128>> {
 	let mut balances = vec![vec![0i128; PROP_DIMS]; PROP_ACCS];
 	for a in 0..PROP_ACCS {
 		for j in 0..PROP_DIMS {

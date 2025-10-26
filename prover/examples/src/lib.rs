@@ -185,6 +185,13 @@ pub trait ExampleCircuit: Sized {
 	/// - Validate that instance data is compatible with circuit parameters
 	fn populate_witness(&self, instance: Self::Instance, filler: &mut WitnessFiller) -> Result<()>;
 
+	/// Hook invoked after a proof is successfully generated and verified.
+	///
+	/// Override to surface instance-specific output (e.g., commitments) once integrity is assured.
+	fn on_prove_success(&self) -> Result<()> {
+		Ok(())
+	}
+
 	/// Generate a concise parameter summary for perfetto trace filenames.
 	///
 	/// This method should return a short string (5-10 chars max) that captures
@@ -200,4 +207,35 @@ pub trait ExampleCircuit: Sized {
 		let _ = params;
 		None
 	}
+}
+
+/// Build, populate, and prove a circuit example using the provided configuration.
+pub fn prove_example<E: ExampleCircuit>(
+	params: E::Params,
+	instance: E::Instance,
+	log_inv_rate: usize,
+	compression: CompressionType,
+) -> Result<()> {
+	let mut builder = CircuitBuilder::new();
+	let example = E::build(params, &mut builder)?;
+	let circuit = builder.build();
+	let cs = circuit.constraint_system().clone();
+
+	let mut filler = circuit.new_witness_filler();
+	example.populate_witness(instance, &mut filler)?;
+	circuit.populate_wire_witness(&mut filler)?;
+	let witness = filler.into_value_vec();
+
+	match compression {
+		CompressionType::Sha256 => {
+			let (verifier, prover) = setup_sha256(cs, log_inv_rate, None)?;
+			prove_verify(&verifier, &prover, witness)?;
+		}
+		CompressionType::Vision4 => {
+			let (verifier, prover) = setup_vision4(cs, log_inv_rate, None)?;
+			prove_verify(&verifier, &prover, witness)?;
+		}
+	}
+
+	example.on_prove_success()
 }

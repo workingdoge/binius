@@ -505,6 +505,8 @@ where
 			}
 		}
 
+		example.on_prove_success()?;
+
 		Ok(())
 	}
 

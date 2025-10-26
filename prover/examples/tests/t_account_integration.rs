@@ -2,11 +2,11 @@
 use anyhow::Result;
 use binius_examples::setup_sha256;
 use binius_frontend::{
-	t_account::{
-		accumulate_transactions, build_ledger_circuit, build_ledger_squash_circuit, populate_squash_witness,
-		populate_witness, LedgerPi, LedgerShape, LedgerSigma,
-	},
 	CircuitBuilder,
+	t_account::{
+		LedgerPi, LedgerShape, LedgerSigma, accumulate_transactions, build_ledger_circuit,
+		build_ledger_squash_circuit, populate_squash_witness, populate_witness,
+	},
 };
 use binius_verifier::{
 	config::StdChallenger,
